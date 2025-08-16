@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reproductor</title>
+<!-- Enlace a Font Awesome para los iconos (play, pause, etc.) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<!-- Enlace a la hoja de estilos de Swiper.js para el carrusel de portadas -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+<style>
+/* ====== CSS UNIFICADO ====== */
+
+/* Importación de fuentes desde Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@200;400;700&family=Permanent+Marker&display=swap");
+
+/* Definición de variables de color para usar en todo el CSS */
+:root {
+  --light-clr: #e5e5e5;
+  --primary-clr: #6490f6;
+  --secondary-clr: #c1daff;
+  --active-clr: rgba(149, 153, 186, 0.4);
+  --player-bg: rgba(5, 9, 51, 0.4);
+  --scrollbar-track: rgb(79, 78, 78);
+  --scrollbar-thumb: rgb(116, 116, 116);
+}
+
+/* Reseteo básico de estilos para todos los elementos */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+/* Estilos base para las imágenes */
+img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Asegura que la imagen cubra el contenedor sin deformarse */
+  user-select: none; /* Evita que el usuario pueda seleccionar la imagen */
+}
+
+/* Tamaños de fuente responsivos (reducidos) */
+h1 { font-size: clamp(0.7rem, 2.5vw, 0.9rem); }
+p { font-size: clamp(0.6rem, 2.5vw, 0.8rem); }
+
+/* Estilos para el cuerpo de la página */
+body {
+  font-family: "Nunito", sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #001124;
+  /* La URL de la imagen de fondo. Puedes cambiarla por cualquier otra URL de imagen. */
+  background-image: url(https://i.postimg.cc/3xnVYxTF/fondo2.jpg);
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Contenedor principal del reproductor (tamaño reducido) */
+main {
+  position: relative;
+  width: 85%; /* Reducido de 90% */
+  height: 85%; /* Reducido de 90% */
+  max-width: 800px; /* Ancho máximo para pantallas grandes */
+  max-height: 550px; /* Alto máximo */
+  background: transparent;
+  border-radius: 15px;
+  overflow: hidden; /* Oculta cualquier contenido que se salga del contenedor */
+}
+
+/* Contenido principal con efecto de desenfoque de fondo (blur) */
+.content {
+  position: absolute;
+  inset: 0; /* Abarca todo el espacio del contenedor 'main' */
+  display: grid;
+  place-items: center;
+  background: rgba(53, 54, 72, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: inherit;
+  color: var(--light-clr);
+  overflow-y: auto; /* Añade una barra de scroll si el contenido es muy largo */
+  padding: 20px 20px 10px; /* Padding reducido */
+}
+
+/* Estilos para la barra de scroll */
+.content::-webkit-scrollbar { width: 5px; }
+.content::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 0.3rem var(--scrollbar-track);
+  border-radius: 40px;
+  margin: 18px 0;
+}
+.content::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 0.5rem var(--scrollbar-thumb);
+  background-color: var(--primary-clr);
+  border-radius: 40px;
+}
+
+/* Grid para alinear el carrusel y la lista de reproducción */
+.slider-playlist {
+  display: grid;
+  grid-template-columns: 40% 60%; /* Ajustado para el nuevo tamaño */
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Estilos para el carrusel de Swiper.js (tamaño reducido) */
+.swiper { width: 240px; height: auto; }
+.swiper-slide {
+  display: grid;
+  grid-template-rows: 4fr 1fr;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #d3d2d6;
+}
+.swiper-slide img {
+  aspect-ratio: 1/1;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+.swiper-slide h1 {
+  font-family: "Permanent Marker", serif;
+  letter-spacing: 1px;
+  color: #222224;
+  transform: rotate(-3deg);
+  margin: auto;
+}
+
+/* Estilos para la lista de reproducción */
+.playlist { width: 100%; }
+.playlist-item {
+  display: grid;
+  grid-template-columns: 15% 65% 15% 5%;
+  align-items: center;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--primary-clr);
+  cursor: pointer;
+}
+.playlist-item img {
+  width: 70%;
+  aspect-ratio: 1/1;
+  border-radius: 5px;
+}
+.playlist-item .song p:nth-child(1) { font-weight: 500; margin-bottom: 2px; }
+.playlist-item .song p:nth-child(2) { font-weight: 300; opacity: 0.5; }
+.active-playlist-item { background-color: var(--active-clr); border-radius: 5px; }
+
+/* Estilos para el reproductor de audio (controles, barra de progreso) */
+.player {
+  position: sticky; /* Se queda fijo en la parte inferior al hacer scroll */
+  bottom: 0;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  background: var(--player-bg);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 5px;
+}
+
+/* Estilos para los botones de control (tamaño reducido) */
+.controls { display: flex; column-gap: 20px; align-items: center; }
+.controls i { font-size: 1.4rem; cursor: pointer; }
+#playPauseBtn {
+  width: 40px; aspect-ratio: 1/1;
+  background: var(--light-clr);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: var(--primary-clr);
+  display: flex; align-items: center; justify-content: center;
+}
+.volume { position: relative; display: flex; align-items: center; }
+#volume-range {
+  position: absolute;
+  left: 25px; top: 6px;
+  width: 100px; /* Reducido */
+  background: var(--primary-clr);
+  height: 3px; border-radius: 4px;
+}
+#progress-bar {
+  width: 90%; height: 4px;
+  background: linear-gradient(90deg,var(--light-clr),var(--secondary-clr),var(--primary-clr));
+  border-radius: 4px;
+  margin: 10px 0 12px;
+}
+
+/* ====== ESTILOS ADAPTABLES (RESPONSIVE) ====== */
+
+/* Para tabletas y móviles (pantallas de hasta 768px de ancho) */
+@media (max-width: 768px) {
+  .slider-playlist {
+    grid-template-columns: 1fr; /* Cambia el layout a una sola columna */
+    gap: 30px; /* Aumenta el espacio entre el carrusel y la lista */
+  }
+
+  .swiper {
+    width: 280px; /* Hacemos el carrusel un poco más grande para que se vea mejor */
+    margin: 0 auto; /* Centramos el carrusel en la pantalla */
+  }
+
+  main {
+    width: 95%; /* El contenedor principal ocupa más ancho */
+    height: 95%; /* y más alto de la pantalla */
+  }
+
+  .content {
+    padding: 15px; /* Reducimos el padding interno */
+  }
+  
+  .playlist-item {
+     grid-template-columns: 20% 60% 15% 5%; /* Ajustamos las columnas de la lista */
+  }
+}
+
+/* Para móviles pequeños (pantallas de hasta 480px de ancho) */
+@media (max-width: 480px) {
+    h1 { font-size: clamp(0.8rem, 4vw, 1rem); }
+    p { font-size: clamp(0.7rem, 4vw, 0.9rem); }
+
+    .controls {
+        column-gap: 15px; /* Menos espacio entre los botones de control */
+    }
+
+    .controls i {
+        font-size: 1.3rem; /* Iconos un poco más pequeños */
+    }
+
+    #playPauseBtn {
+        width: 38px; /* Botón de play/pause más pequeño */
+    }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="content">
+    <div class="slider-playlist">
+      <!-- Contenedor del carrusel Swiper -->
+      <div class="swiper">
+        <div class="swiper-wrapper">
+          <!-- Cada 'swiper-slide' es una tarjeta en el carrusel -->
+          <!-- La etiqueta 'img' tiene un atributo 'src' que contiene la URL de la imagen de la portada. -->
+          <!-- Puedes cambiar esta URL por la de cualquier otra imagen que quieras mostrar. -->
+          <div class="swiper-slide"><img src="https://i.postimg.cc/VvMjb2yk/palabras-rotas-y-retazos.png" /><h1>Syn Cole</h1></div>
+          <div class="swiper-slide"><img src="https://i.postimg.cc/VvMjb2yk/palabras-rotas-y-retazos.png" /><h1>Palabras Rotas y Retazos</h1></div>
+          <div class="swiper-slide"><img src="https://i.postimg.cc/KzZ2QHx0/chica-gato.png" /><h1>Me Gustaria ser Gato</h1></div>
+          <div class="swiper-slide"><img src="https://i.postimg.cc/xdyhLF2g/telas-mentales.png" /><h1>Telas Mentales</h1></div>
+          <div class="swiper-slide"><img src="https://i.postimg.cc/cLh94S9d/tu-luz-de-la-ana.webp" /><h1>Luz de la Mañana</h1></div>
+        </div>
+      </div>
+
+      <!-- Contenedor de la lista de reproducción -->
+      <div class="playlist">
+        <!-- Cada 'playlist-item' es una canción en la lista -->
+        <!-- La etiqueta 'img' usa 'src' para la URL de la miniatura de la canción. -->
+        <div class="playlist-item"><img src="https://github.com/user-attachments/assets/d80e6b68-b67a-4e27-86ee-e00581883d5c"><div class="song"><p>Syn Cole</p><p>Feel Good</p></div><p>3:01</p><i class="fa-regular fa-heart like-btn"></i></div>
+        <div class="playlist-item"><img src="https://i.postimg.cc/VvMjb2yk/palabras-rotas-y-retazos.png"><div class="song"><p>Palabras Rotas y Retazos</p><p>Humo</p></div><p>2:38</p><i class="fa-regular fa-heart like-btn"></i></div>
+        <div class="playlist-item"><img src="https://i.postimg.cc/KzZ2QHx0/chica-gato.png"><div class="song"><p>Me Gustaria ser Gato</p><p>Humo</p></div><p>3:31</p><i class="fa-regular fa-heart like-btn"></i></div>
+        <div class="playlist-item"><img src="https://i.postimg.cc/xdyhLF2g/telas-mentales.png"><div class="song"><p>Telas Mentales</p><p>Voz:Rober Letra:humo</p></div><p>3:23</p><i class="fa-solid fa-heart like-btn"></i></div>
+        <div class="playlist-item"><img src="https://i.postimg.cc/cLh94S9d/tu-luz-de-la-ana.webp"><div class="song"><p>Luz de la mañana</p><p>Humo</p></div><p>2:37</p><i class="fa-regular fa-heart like-btn"></i></div>
+      </div>
+    </div>
+    
+    <!-- Contenedor del reproductor en la parte inferior -->
+    <div class="player">
+      <!-- La etiqueta 'audio' es el reproductor de HTML5. No necesita 'src' aquí porque se lo añadiremos con JavaScript. -->
+      <audio id="audioPlayer" type="audio/mpeg"></audio>
+      <div class="controls">
+        <i class="fa-solid fa-shuffle" id="shuffleBtn"></i>
+        <i class="fa-solid fa-backward" id="prevBtn"></i>
+        <button id="playPauseBtn"><i class="fa-solid fa-play" id="playPauseIcon"></i></button>
+        <i class="fa-solid fa-forward" id="nextBtn"></i>
+        <div class="volume"><i class="fa-solid fa-volume-high"></i><input type="range" id="volume-range" min="0" max="100" value="100"></div>
+      </div>
+      <input type="range" value="0" id="progress-bar">
+    </div>
+  </div>
+</main>
+
+<!-- Script de la librería Swiper.js para el carrusel -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+<script>
+// ====== JS UNIFICADO ======
+
+// --- SELECCIÓN DE ELEMENTOS DEL DOM ---
+// Guardamos en variables los elementos HTML con los que vamos a interactuar.
+const playlistItems = document.querySelectorAll(".playlist-item");
+const likeBtns = document.querySelectorAll(".like-btn");
+const audioPlayer = document.getElementById("audioPlayer");
+const volumeRange = document.getElementById("volume-range");
+const progressBar = document.getElementById("progress-bar");
+const playPauseBtn = document.getElementById("playPauseBtn");
+const playPauseIcon = document.getElementById("playPauseIcon");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const shuffleBtn = document.getElementById("shuffleBtn");
+
+// --- VARIABLES DE ESTADO ---
+let currentSongIndex = 0; // Índice de la canción que se está reproduciendo
+let isSongLoaded = false; // Bandera para saber si ya se ha cargado una canción
+
+// --- LISTA DE CANCIONES ---
+// Este es el array más importante. Contiene las URLs directas a los archivos de audio (MP3).
+// Cada URL debe ser un enlace directo al archivo de música para que el reproductor pueda cargarlo.
+// El orden de las URLs aquí debe coincidir con el orden de las canciones en el HTML.
+const songs = [
+  "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // URL para la primera canción
+  "https://files.catbox.moe/4kz3mi.mp3", // URL para la segunda canción (trazos)
+  "https://files.catbox.moe/frcvwr.mp3", // URL para la tercera canción (gato)
+  "https://files.catbox.moe/kq45m9.mp3", // URL para la cuarta canción (telas)
+  "https://files.catbox.moe/khv8cw.mp3", // URL para la quinta canción (luz mañana)
+];
+
+// --- INICIALIZACIÓN DE SWIPER ---
+// Creamos una nueva instancia de Swiper para el carrusel.
+var swiper = new Swiper(".swiper", { effect: "cards", grabCursor: true, speed: 700, initialSlide: 0 });
+
+// --- SINCRONIZACIÓN DE SWIPER Y LA LISTA ---
+// Cuando el usuario desliza el carrusel, actualizamos la canción.
+swiper.on("slideChange", () => {
+  const newIndex = swiper.realIndex;
+  if (newIndex !== currentSongIndex) {
+    currentSongIndex = newIndex;
+    loadAndPlaySong(currentSongIndex);
+  }
+});
+
+// --- FUNCIONES DEL REPRODUCTOR ---
+
+// Resalta la canción activa en la lista de reproducción.
+function updatePlaylistHighlight(index) {
+  playlistItems.forEach((item, i) => item.classList.toggle("active-playlist-item", i === index));
+}
+
+// Carga y reproduce una canción según su índice.
+function loadAndPlaySong(index) {
+  audioPlayer.src = songs[index]; // Asigna la URL del MP3 al reproductor de audio
+  audioPlayer.play().catch(e => console.error("Error al reproducir el audio:", e)); // Intenta reproducir
+  updatePlayPauseIcon(true); // Cambia el icono a "pausa"
+  updatePlaylistHighlight(index); // Resalta la canción en la lista
+  swiper.slideTo(index); // Mueve el carrusel a la portada correcta
+  isSongLoaded = true;
+}
+
+// Cambia el icono de play/pausa.
+function updatePlayPauseIcon(isPlaying) {
+  playPauseIcon.classList.toggle("fa-pause", isPlaying);
+  playPauseIcon.classList.toggle("fa-play", !isPlaying);
+}
+
+// Controla la reproducción y la pausa.
+function togglePlayPause() {
+  if (!isSongLoaded) {
+    loadAndPlaySong(currentSongIndex); // Si no hay canción cargada, carga la primera
+  } else if (audioPlayer.paused) {
+    audioPlayer.play(); updatePlayPauseIcon(true); // Si está en pausa, la reproduce
+  } else {
+    audioPlayer.pause(); updatePlayPauseIcon(false); // Si está sonando, la pausa
+  }
+}
+
+// Funciones para ir a la canción siguiente y anterior.
+function nextSong() { currentSongIndex = (currentSongIndex + 1) % songs.length; loadAndPlaySong(currentSongIndex); }
+function prevSong() { currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length; loadAndPlaySong(currentSongIndex); }
+
+// --- EVENT LISTENERS (ESCUCHADORES DE EVENTOS) ---
+
+// Al hacer clic en un elemento de la lista, se reproduce esa canción.
+playlistItems.forEach((item, index) => item.addEventListener("click", () => { currentSongIndex = index; loadAndPlaySong(index); }));
+
+// Asigna las funciones a los botones de control.
+playPauseBtn.addEventListener("click", togglePlayPause);
+nextBtn.addEventListener("click", nextSong);
+prevBtn.addEventListener("click", prevSong);
+
+// Actualiza la barra de progreso cuando la canción avanza.
+audioPlayer.addEventListener("loadedmetadata", () => { progressBar.max = audioPlayer.duration; });
+audioPlayer.addEventListener("timeupdate", () => { if (!audioPlayer.paused) progressBar.value = audioPlayer.currentTime; });
+
+// Permite al usuario adelantar o retroceder la canción con la barra de progreso.
+progressBar.addEventListener("input", () => { audioPlayer.currentTime = progressBar.value; });
+
+// Controla el volumen.
+volumeRange.addEventListener("input", () => { audioPlayer.volume = volumeRange.value / 100; });
+
+// Cuando una canción termina, pasa a la siguiente.
+audioPlayer.addEventListener("ended", nextSong);
+
+// Botón de reproducción aleatoria.
+shuffleBtn.addEventListener("click", () => {
+  let randomIndex = Math.floor(Math.random() * songs.length);
+  if (randomIndex === currentSongIndex) randomIndex = (randomIndex + 1) % songs.length; // Evita repetir la misma canción
+  currentSongIndex = randomIndex;
+  loadAndPlaySong(currentSongIndex);
+});
+
+// Funcionalidad para los botones de "me gusta".
+likeBtns.forEach((likeBtn) => likeBtn.addEventListener("click", (e) => { 
+  e.stopPropagation(); // Evita que se active el clic de la canción
+  likeBtn.classList.toggle("fa-solid"); // Cambia entre corazón relleno y vacío
+  likeBtn.classList.toggle("fa-regular"); 
+}));
+</script>
+</body>
+</html>
